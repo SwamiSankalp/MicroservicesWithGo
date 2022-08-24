@@ -1,37 +1,50 @@
 package main
 
 import (
-	"fmt"
-	"io/ioutil"
+	"context"
 	"log"
+	"microservices/handlers"
 	"net/http"
+	"os"
+	"os/signal"
+	"time"
 )
 
 func main() {
-	// http.ResponseWriter is a interface to construct an HTTP response 
-	// Ex: It can write to headers, statuscodes, response body and so on
-	// http.Request represents an HTTP request
-	// It contains info like PATH, METHODS, BODY, HTTP version and so on
-	http.HandleFunc("/", func(rw http.ResponseWriter, r *http.Request) { 
-		// http.HandleFunc registers a function to a path on the defaultServeMux 
-		// => http.DefaultServeMux.HandleFunc("/", func)
-		// DefaultServeMux is a http handler and every thing related to the go server is a http handler
-		log.Println("Hello World")
-		d,err := ioutil.ReadAll(r.Body) // ioutil reads all the data passed through the request
-		if err != nil { // Check if error and write an error message to the request
-			// rw.WriteHeader(http.StatusBadRequest) // WriteHeader allows to specify HTTP StatusCode
-			// rw.Write([]byte("Oops!"))
-			http.Error(rw, "Ooops!", http.StatusBadRequest) 
-			// http has a standard Error interface to handle everything related to the errors
-			return
+	l := log.New(os.Stdout, "product-api", log.LstdFlags)
+	hh := handlers.NewHello(l)
+	gh := handlers.NewGoodBye(l)
+
+	sm := http.NewServeMux()
+	sm.Handle("/", hh)
+	sm.Handle("/goodbye", gh)
+
+	// http.ListenAndServe(":8080", sm) // Binding the web server to the PORT
+
+	// Customizing your own server specifics	
+	server := &http.Server{
+		Addr: ":9090",
+		Handler: sm,
+		IdleTimeout: 120*time.Second,
+		ReadTimeout: 1*time.Second,
+		WriteTimeout: 1*time.Second,
+	}
+
+	go func ()  {
+		err := server.ListenAndServe()
+		if err != nil {
+			l.Fatal(err)
 		}
-		fmt.Fprintf(rw, "Data %s\n", d) // fmt.Fprintf allows to write responses
-	})
+	} ()
 
+	sigChan := make(chan os.Signal) // allocates and initializes an object of slice, map & channel
+	signal.Notify(sigChan, os.Interrupt) // will notify the sigChan channel whenever server is interrupted
+	signal.Notify(sigChan, os.Kill)
 
-	http.HandleFunc("/goodbye", func(w http.ResponseWriter, r *http.Request) {
-		log.Println("Good Bye!")
-	})
+	sig := <-sigChan
+	l.Println("Recieved terminate, graceful shutdown", sig)
 
-	http.ListenAndServe(":8080", nil) // Binding the web server to the PORT
+	timeOutContext,_ := context.WithTimeout(context.Background(), 30*time.Second)
+	server.Shutdown(timeOutContext)
+
 }
