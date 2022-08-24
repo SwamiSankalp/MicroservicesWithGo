@@ -13,10 +13,13 @@ import (
 func main() {
 
 	logger := log.New(os.Stdout, "product-api", log.LstdFlags)
+	
+	// create the handlers
 	helloHandler := handlers.NewHello(logger)
 	goodByeHandler := handlers.NewGoodBye(logger)
 	productHandler := handlers.NewProducts(logger)
 
+	// create a new serve mux and register the handlers
 	serveMux := http.NewServeMux()
 	serveMux.Handle("/", helloHandler)
 	serveMux.Handle("/goodbye", goodByeHandler)
@@ -34,6 +37,7 @@ func main() {
 		WriteTimeout: 	10 * time.Second,	// max time to write response to the client
 	}
 
+	// start the server
 	go func ()  {
 		err := server.ListenAndServe()
 		if err != nil {
