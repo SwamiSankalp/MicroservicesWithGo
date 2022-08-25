@@ -28,6 +28,11 @@ func (h*Hello) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		// DefaultServeMux is a http handler and every thing related to the go server is a http handler
 		h.l.Println("Hello World")
 
+		if r.URL.Path != "/" {
+			http.Error(rw, "Invalid URL", http.StatusBadRequest)
+			return
+		}
+
 		// read the body
 		d,err := ioutil.ReadAll(r.Body) // ioutil reads all the data passed through the request
 		if err != nil { // Check if error and write an error message to the request

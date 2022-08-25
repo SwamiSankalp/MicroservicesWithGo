@@ -8,6 +8,8 @@ import (
 	"os"
 	"os/signal"
 	"time"
+
+	"github.com/gorilla/mux"
 )
 
 func main() {
@@ -15,15 +17,29 @@ func main() {
 	logger := log.New(os.Stdout, "product-api", log.LstdFlags)
 	
 	// create the handlers
-	helloHandler := handlers.NewHello(logger)
-	goodByeHandler := handlers.NewGoodBye(logger)
+	//helloHandler := handlers.NewHello(logger)
+	//goodByeHandler := handlers.NewGoodBye(logger)
 	productHandler := handlers.NewProducts(logger)
 
 	// create a new serve mux and register the handlers
-	serveMux := http.NewServeMux()
-	serveMux.Handle("/", helloHandler)
-	serveMux.Handle("/goodbye", goodByeHandler)
-	serveMux.Handle("/products", productHandler)
+	// serveMux := http.NewServeMux()
+	serveMux := mux.NewRouter() 
+	// Gorilla is a webtoolkit for Go which eases down building web services over the Go standard library
+	//serveMux.Handle("/", helloHandler)
+	//serveMux.Handle("/goodbye", goodByeHandler)
+	// serveMux.Handle("/products/", productHandler)
+
+	getRouter := serveMux.Methods(http.MethodGet).Subrouter()
+	getRouter.HandleFunc("/", productHandler.GetProducts)
+
+	putRouter := serveMux.Methods(http.MethodPut).Subrouter()
+	putRouter.HandleFunc("/{id:[0-9]+}", productHandler.UpdateProduct)
+	putRouter.Use(productHandler.MiddlewareProductValidation)
+
+	postRouter := serveMux.Methods(http.MethodPost).Subrouter()
+	postRouter.HandleFunc("/", productHandler.AddProduct)
+	postRouter.Use(productHandler.MiddlewareProductValidation)
+
 
 	// http.ListenAndServe(":8080", serveMux) // Binding the web server to the PORT
 
@@ -59,3 +75,5 @@ func main() {
 
 
 // REST stands for Representational State Transfer is an architectural standard for designing web services
+// An Middleware in Gorilla is just an HTTP Handler
+// Using Gorilla `Use`, we can append a Middleware func to the chain
