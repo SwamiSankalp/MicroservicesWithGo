@@ -35,6 +35,8 @@ func main() {
 	putRouter := serveMux.Methods(http.MethodPut).Subrouter()
 	putRouter.HandleFunc("/{id:[0-9]+}", productHandler.UpdateProduct)
 	putRouter.Use(productHandler.MiddlewareProductValidation)
+	// An Middleware in Gorilla is just an HTTP Handler
+	// Using Gorilla `Use`, we can append a Middleware func to the chain
 
 	postRouter := serveMux.Methods(http.MethodPost).Subrouter()
 	postRouter.HandleFunc("/", productHandler.AddProduct)
@@ -75,5 +77,3 @@ func main() {
 
 
 // REST stands for Representational State Transfer is an architectural standard for designing web services
-// An Middleware in Gorilla is just an HTTP Handler
-// Using Gorilla `Use`, we can append a Middleware func to the chain
